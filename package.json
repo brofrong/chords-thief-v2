@@ -1,0 +1,24 @@
+{
+  "name": "chords-thief-v2",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "^1.2.19",
+    "drizzle-kit": "^0.31.4"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/deepseek": "^0.2.16",
+    "ai": "^4.3.19",
+    "cheerio": "^1.1.2",
+    "drizzle-orm": "^0.44.4",
+    "telegraf": "^4.16.3",
+    "zod": "^4.0.5"
+  }
+}

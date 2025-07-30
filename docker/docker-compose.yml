@@ -1,0 +1,17 @@
+version: '3.8'
+
+name: chords-thief-v2
+services:
+  bun:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_MODELS=gemma3:12b
+    restart: unless-stopped
+    volumes:
+      - db-data:/db
+    
+volumes:
+  db-data:
