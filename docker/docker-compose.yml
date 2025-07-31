@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   chords-thief:
-    user: ${UID}:${GID}
+    user: 1000:1000
     build:
       context: ..
       dockerfile: dockerfile
