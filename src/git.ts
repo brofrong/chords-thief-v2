@@ -11,8 +11,7 @@ export async function initGit() {
   try {
     await $`cd ${env.PATH_TO_SAVE} && gh auth status`.text();
     await $`cd ${env.PATH_TO_SAVE} && gh auth setup-git`.text();
-
-    // await $`cd ${env.PATH_TO_SAVE} && git config user.email "dima737.99@mail.ru" && git config user.name "brofrong"`.text();
+    await $`cd ${env.PATH_TO_SAVE} && git config user.email "dima737.99@mail.ru" && git config user.name "brofrong"`.text();
   } catch (err) {
     return { error: `failed git login: ${JSON.stringify(err)}` };
   }
