@@ -1,6 +1,10 @@
 # Use the official Bun image as base
 FROM oven/bun:alpine
 
+# Install git and GitHub CLI
+RUN apk add --no-cache git github-cli
+
+
 # Set working directory
 WORKDIR /app
 
