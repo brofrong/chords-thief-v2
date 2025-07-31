@@ -11,10 +11,10 @@ services:
       - ../obsidian-vault:/app/obsidian-vault
     environment:
       - NODE_ENV=production
-      - TELEGRAM_BOT_TOKEN=
-      - DEEPSEEK_TOKEN=
-      - DB_FILE_NAME=./db/mydb.sqlite
-      - PATH_TO_SAVE=./obsidian-vault/Гитара/
-      - GITHUB_TOKEN=
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - DEEPSEEK_TOKEN=${DEEPSEEK_TOKEN}
+      - DB_FILE_NAME=${DB_FILE_NAME}
+      - PATH_TO_SAVE=${PATH_TO_SAVE}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
     restart: unless-stopped
 
