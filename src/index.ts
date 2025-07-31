@@ -34,17 +34,21 @@ bot.start(async (ctx) => {
 bot.action("like", async (ctx) => {
   if (!(await guard.canSave(ctx.callbackQuery.from?.id))) {
     await ctx.answerCbQuery("У тебя нет прав на сохранение");
+    await ctx.reply("У тебя нет прав на сохранение");
     return;
   }
 
   const messageId = ctx.callbackQuery?.message?.message_id;
-  if (!messageId) {
+  const chatId = ctx.callbackQuery?.message?.chat.id;
+  if (!messageId || !chatId) {
     await ctx.answerCbQuery("Error: Message not found");
+    await ctx.reply("Сообщение не найдено");
     return;
   }
 
   const message = await db.query.MessagesTable.findFirst({
-    where: (table, { eq }) => eq(table.messageId, messageId),
+    where: (table, { eq, and }) =>
+      and(eq(table.messageId, messageId), eq(table.chatId, chatId)),
   });
   if (!message) {
     await ctx.answerCbQuery("Error: Message not found");
@@ -54,13 +58,13 @@ bot.action("like", async (ctx) => {
 
   const gitResult = await saveMessage(message.AIMessage, message.originalLink);
   if (gitResult.error) {
-    await ctx.answerCbQuery(gitResult.error);
-    await ctx.reply("Ошибка в GIT");
+    await ctx.answerCbQuery("git error");
+    await ctx.reply(`Ошибка в GIT ${gitResult.error}`);
     return;
   }
   const name = (gitResult as { success: { name: string } }).success.name;
-  await ctx.answerCbQuery("Success");
   await ctx.reply(`Сохранено как "${name}"!`);
+  await ctx.answerCbQuery("Success");
 });
 
 bot.on("message", async (ctx) => {
@@ -88,6 +92,7 @@ bot.on("message", async (ctx) => {
 
     // Store the fullMessage with the message ID
     await db.insert(MessagesTable).values({
+      chatId: lastReply.chat.id,
       messageId: lastReply.message_id,
       AIMessage: fullMessage,
       originalLink: urlParsed.data.toString(),

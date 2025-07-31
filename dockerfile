@@ -12,19 +12,13 @@ WORKDIR /app
 COPY package.json bun.lock ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --production
 
 # Copy source code
 COPY . .
-
-# Build the application (if needed)
-# RUN bun run build
-
-# Expose port (if needed for web server)
-# EXPOSE 3000
 
 # Set environment variables
 ENV NODE_ENV=production
 
 # Run the application
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "./src/index.ts"]

@@ -71,7 +71,6 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -161,7 +160,6 @@ test.ts
 __tests__/
 
 # Build artifacts
-dist/
 build/
 
 # Database files
@@ -171,3 +169,5 @@ build/
 
 # Bun specific
 .bun/ 
+
+obsidian-vault/

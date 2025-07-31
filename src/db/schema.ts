@@ -10,6 +10,7 @@ export const UsersTable = sqliteTable("users_table", {
 
 export const MessagesTable = sqliteTable("messages_table", {
   id: int().primaryKey({ autoIncrement: true }),
+  chatId: int().notNull(),
   messageId: int().notNull(),
   AIMessage: text().notNull(),
   originalLink: text().notNull(),

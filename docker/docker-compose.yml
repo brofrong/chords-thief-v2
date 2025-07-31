@@ -1,17 +1,20 @@
 version: '3.8'
 
-name: chords-thief-v2
+name: chords-thief
 services:
-  bun:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    environment:
-      - OLLAMA_MODELS=gemma3:12b
-    restart: unless-stopped
+  chords-thief:
+    build:
+      context: ..
+      dockerfile: dockerfile
     volumes:
-      - db-data:/db
-    
-volumes:
-  db-data:
+      - ../db:/app/db
+      - ../obsidian-vault:/app/obsidian-vault
+    environment:
+      - NODE_ENV=production
+      - TELEGRAM_BOT_TOKEN=
+      - DEEPSEEK_TOKEN=
+      - DB_FILE_NAME=./db/mydb.sqlite
+      - PATH_TO_SAVE=./obsidian-vault/Гитара/
+      - GITHUB_TOKEN=
+    restart: unless-stopped
+
