@@ -1,22 +1,23 @@
-import { createDeepSeek } from "@ai-sdk/deepseek";
-import { streamText } from "ai";
+import { OpenRouter } from "@openrouter/sdk";
 import { env } from "../utils/env";
 import { masterPrompt } from "./master-promt";
 
-const deepseek = createDeepSeek({
-  apiKey: env.DEEPSEEK_TOKEN,
+
+const openRouter = new OpenRouter({
+  apiKey: env.OPENROUTER_API_KEY,
 });
 
+
 export async function getChords(text: string) {
-  return streamText({
-    model: deepseek("deepseek-chat"),
-    prompt: `${masterPrompt}\n\n${text}`,
-  });
+	return getStream(`${masterPrompt}\n\n${text}`);
 }
 
-export async function TestStream(text: string) {
-  return streamText({
-    model: deepseek("deepseek-chat"),
-    prompt: text,
+export async function getStream(text: string) {
+	const response = openRouter.callModel({
+    model: env.AI_MODEL,
+    // model: 'google/gemini-3.1-pro-preview',
+    input: text
   });
+
+  return response;
 }

@@ -39,3 +39,5 @@ obsidian-vault/
 *.sqlite3
 db/*.sqlite
 db/*.sqlite3
+
+chords/

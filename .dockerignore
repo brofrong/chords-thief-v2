@@ -169,5 +169,4 @@ build/
 
 # Bun specific
 .bun/ 
-
-obsidian-vault/
+./chords/
