@@ -1,10 +1,6 @@
 # Use the official Bun image as base
 FROM oven/bun:alpine
 
-# Install git and GitHub CLI
-RUN apk add --no-cache git github-cli
-
-
 # Set working directory
 WORKDIR /app
 
@@ -19,6 +15,10 @@ COPY . .
 
 # Set environment variables
 ENV NODE_ENV=production
+
+
+# create db directory
+RUN mkdir -p /app/db
 
 # Run the application
 CMD ["bun", "run", "./src/index.ts"]

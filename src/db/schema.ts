@@ -9,6 +9,14 @@ export const UsersTable = sqliteTable("users_table", {
 	canSave: integer({ mode: "boolean" }).notNull().default(false),
 });
 
+export const userSettingsTable = sqliteTable("user_settings_table", {
+	id: int().primaryKey({ autoIncrement: true }),
+	userId: int().unique().notNull().references(() => UsersTable.id),
+	openRouterApiKey: text(),
+	aiModel: text(),
+	masterPrompt: text(),
+});
+
 export const MessagesTable = sqliteTable("messages_table", {
 	id: int().primaryKey({ autoIncrement: true }),
   authorId: int().notNull(),
@@ -20,11 +28,17 @@ export const MessagesTable = sqliteTable("messages_table", {
 });
 
 
-export const relations = defineRelations({ user: UsersTable, messages: MessagesTable }, (r) => ({
+export const relations = defineRelations({ user: UsersTable, messages: MessagesTable, userSettings: userSettingsTable }, (r) => ({
 	messages: {
 		author: r.one.user({
 			from: r.messages.authorId,
 			to: r.user.telegramId,
 		}),
-	}
+	},
+	user: {
+		settings: r.one.userSettings({
+			from: r.user.id,
+			to: r.userSettings.userId,
+		}),
+	},
 }))

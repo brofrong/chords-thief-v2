@@ -1,0 +1,234 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "69baef8c-a40d-4921-ac3c-8def2cdeef97",
+  "prevIds": [
+    "d9b58ab0-b74d-43b7-ac7a-156fd02327f0"
+  ],
+  "ddl": [
+    {
+      "name": "messages_table",
+      "entityType": "tables"
+    },
+    {
+      "name": "users_table",
+      "entityType": "tables"
+    },
+    {
+      "name": "user_settings_table",
+      "entityType": "tables"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "authorId",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "chatId",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "messageId",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "AIMessage",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "originalLink",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "createdAt",
+      "entityType": "columns",
+      "table": "messages_table"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "users_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "telegramId",
+      "entityType": "columns",
+      "table": "users_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "canParse",
+      "entityType": "columns",
+      "table": "users_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "canSave",
+      "entityType": "columns",
+      "table": "users_table"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "user_settings_table"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "userId",
+      "entityType": "columns",
+      "table": "user_settings_table"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "openRouterApiKey",
+      "entityType": "columns",
+      "table": "user_settings_table"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "aiModel",
+      "entityType": "columns",
+      "table": "user_settings_table"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "masterPrompt",
+      "entityType": "columns",
+      "table": "user_settings_table"
+    },
+    {
+      "columns": [
+        "userId"
+      ],
+      "tableTo": "users_table",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_user_settings_table_userId_users_table_id_fk",
+      "entityType": "fks",
+      "table": "user_settings_table"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "messages_table_pk",
+      "table": "messages_table",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "users_table_pk",
+      "table": "users_table",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "user_settings_table_pk",
+      "table": "user_settings_table",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "telegramId"
+      ],
+      "nameExplicit": false,
+      "name": "users_table_telegramId_unique",
+      "entityType": "uniques",
+      "table": "users_table"
+    }
+  ],
+  "renames": []
+}

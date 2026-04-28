@@ -2,19 +2,20 @@ version: '3.8'
 
 services:
   chords-thief:
+    container_name: chords-thief
     user: 1000:1000
     build:
       context: ..
       dockerfile: dockerfile
     volumes:
-      - ../db:/app/db
-      - ../obsidian-vault:/app/obsidian-vault
+      - ./db:/app/db
+      - ./chords:/app/chords
     environment:
       - NODE_ENV=production
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - DEEPSEEK_TOKEN=${DEEPSEEK_TOKEN}
-      - DB_FILE_NAME=${DB_FILE_NAME}
-      - PATH_TO_SAVE=${PATH_TO_SAVE}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AI_MODEL=${AI_MODEL}
+      - ADMIN_ID=${ADMIN_ID}
+
     restart: unless-stopped
 

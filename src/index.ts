@@ -11,17 +11,54 @@ import { guard } from "./guard";
 import { saveMessage } from "./save-chords";
 import { fetchHtml } from "./scraping";
 import { env } from "./utils/env";
+import {
+  type Conversation,
+  type ConversationFlavor,
+  conversations,
+  createConversation,
+} from "@grammyjs/conversations";
+import { settingsConversation } from "./conversation/settings.conversation";
+import { CommandGroup } from "@grammyjs/commands";
 
-type BotContext = StreamFlavor<Context>;
+type BotContext = StreamFlavor<ConversationFlavor<Context>>;
 
 const bot = new Bot<BotContext>(env.TELEGRAM_BOT_TOKEN);
 bot.api.config.use(autoRetry());
 bot.use(stream());
+bot.use(conversations());
+
+bot.use(createConversation(settingsConversation.setOpenRouterApiKey));
+bot.use(createConversation(settingsConversation.setAiModel));
+bot.use(createConversation(settingsConversation.setMasterPrompt));
+
+const settingsCommandGroup = new CommandGroup<BotContext>();
+
+settingsCommandGroup.command("set_api_token", "Set OpenRouter API Token", async (ctx) => await ctx.conversation.enter("setOpenRouterApiKey"));
+settingsCommandGroup.command("set_ai_model", "Set AI Model", async (ctx) => await ctx.conversation.enter("setAiModel"));
+settingsCommandGroup.command("set_master_prompt", "Set Master Prompt", async (ctx) => await ctx.conversation.enter("setMasterPrompt"));
+settingsCommandGroup.command("show_settings", "Show Settings", async (ctx) => {
+	const userSettings = await db.query.user.findFirst({
+		where: {
+			telegramId: ctx.from?.id,
+		},
+		with: {
+			settings: true,
+		}
+	});
+	if (!userSettings) {
+		await ctx.reply("Error: User settings not found");
+		return;
+	}
+	await ctx.reply(`OpenRouter API Token: ${userSettings.settings?.openRouterApiKey ?? "Not set"}\nAI Model: ${userSettings.settings?.aiModel ?? "Not set"}\nMaster Prompt: ${userSettings.settings?.masterPrompt ?? "Not set"}`);
+	});
+
+bot.use(settingsCommandGroup);
+await settingsCommandGroup.setCommands(bot); 
 
 initAdmin();
 
-
 const keyboard = new InlineKeyboard().text('Сохранить', 'save');
+
 
 bot.command('start', async (ctx) => {
 	const user = ctx.message?.from?.id;
@@ -83,13 +120,13 @@ bot.callbackQuery('save', async (ctx) => {
 	await ctx.answerCallbackQuery("Success");
 });
 
-bot.on("message", async (ctx) => {
+bot.command("start", (ctx) => ctx.reply("Welcome! Up and running."));
+
+bot.on("message::url", async (ctx) => {
 	if (!(await guard.canParse(ctx))) {
 		await ctx.reply("У тебя нет прав на парсинг");
 		return;
 	}
-
-
 
 	if ("text" in ctx.message) {
 		const usersInput = ctx.message.text;
@@ -103,7 +140,12 @@ bot.on("message", async (ctx) => {
     
     await ctx.api.editMessageText(reply.chat.id, reply.message_id, "Генерирую текст...");
 
-		const aiResponse = await getChords(html);
+		const chordsResult = await getChords(ctx.from?.id, html);
+		if (!chordsResult.success) {	
+			await ctx.reply("Error: " + chordsResult.error);
+			return;
+		}
+		const  aiResponse = await chordsResult.aiResponse;
 
     const lastReply = await ctx.replyWithStream(aiResponse.getTextStream());
 
@@ -143,6 +185,7 @@ bot.catch(async (error) => {
 
 
 bot.start();
+
 
 // eslint-disable-next-line no-console
 console.log("Bot is running...");
