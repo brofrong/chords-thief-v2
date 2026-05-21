@@ -141,7 +141,6 @@ bot.on("message::url", async (ctx) => {
     await ctx.api.editMessageText(reply.chat.id, reply.message_id, "Генерирую текст...");
 
 		const chordsResult = await getChords(ctx.from?.id, html);
-		console.log(chordsResult);
 		if (!chordsResult.success) {	
 			await ctx.reply("Error: " + JSON.stringify(chordsResult.error).slice(0, 200));
 			return;
