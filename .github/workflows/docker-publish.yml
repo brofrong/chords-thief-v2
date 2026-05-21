@@ -38,7 +38,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/chords-thief
           flavor: |
-            latest=auto
+            latest=true
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
