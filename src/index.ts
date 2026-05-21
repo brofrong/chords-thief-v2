@@ -141,22 +141,22 @@ bot.on("message::url", async (ctx) => {
     await ctx.api.editMessageText(reply.chat.id, reply.message_id, "Генерирую текст...");
 
 		const chordsResult = await getChords(ctx.from?.id, html);
+		console.log(chordsResult);
 		if (!chordsResult.success) {	
-			await ctx.reply("Error: " + chordsResult.error);
+			await ctx.reply("Error: " + JSON.stringify(chordsResult.error).slice(0, 200));
 			return;
 		}
 		const  aiResponse = await chordsResult.aiResponse;
+		try {
+			const lastReply = await ctx.replyWithStream(aiResponse.getTextStream());
+			await ctx.api.deleteMessage(reply.chat.id, reply.message_id);
+			const lastMessageId = lastReply.at(-1)?.message_id;
+			if (!lastMessageId) {
+				await ctx.reply("Error: Message not found");
+				return;
+			}
 
-    const lastReply = await ctx.replyWithStream(aiResponse.getTextStream());
-
-    await ctx.api.deleteMessage(reply.chat.id, reply.message_id);
-    const lastMessageId = lastReply.at(-1)?.message_id;
-    if (!lastMessageId) {
-      await ctx.reply("Error: Message not found");
-      return;
-    }
-
-		// Store the fullMessage with the message ID
+				// Store the fullMessage with the message ID
 		await db.insert(MessagesTable).values({
       authorId: ctx.from?.id,
 			chatId: ctx.chat.id,
@@ -169,6 +169,12 @@ bot.on("message::url", async (ctx) => {
     await ctx.api.editMessageReplyMarkup(ctx.chatId, lastMessageId, {
       reply_markup: keyboard,
     })
+	
+		} catch (error) {
+			console.error(error);
+			await ctx.reply("Error: " + JSON.stringify(error).slice(0, 200));
+			return;
+		}
 	}
 });
 
