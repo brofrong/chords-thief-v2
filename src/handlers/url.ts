@@ -1,7 +1,7 @@
 import { InlineKeyboard } from "grammy";
 import z from "zod";
 import { getChords } from "../ai/ai";
-import { withOnFirstChunk } from "../ai/chat-stream";
+import { bridgeStatusToStream } from "../ai/chat-stream";
 import { db } from "../db";
 import { MessagesTable } from "../db/schema";
 import { guard } from "../middleware/guard";
@@ -90,8 +90,8 @@ export async function urlHandler(ctx: BotContext) {
 	};
 
 	try {
-		// Keep "Генерирую текст..." until the first stream chunk arrives.
-		const stream = withOnFirstChunk(chordsResult.value, clearStatus);
+		// Empty chunk → Telegram Thinking…; status cleared without blocking the model stream.
+		const stream = bridgeStatusToStream(chordsResult.value, clearStatus);
 
 		// Abort cancels OpenRouter + our chunk mapper; replyWithStream stops when the iterable throws.
 		const messages = await ctx.replyWithStream(stream);

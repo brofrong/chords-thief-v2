@@ -12,24 +12,28 @@ export async function* mapChatChunksToText(
 		if (chunk.error) {
 			throw new Error(chunk.error.message);
 		}
-		const delta = chunk.choices[0]?.delta?.content;
+		const choice = chunk.choices[0];
+		const delta = choice?.delta?.content;
 		if (delta) {
 			yield delta;
+		}
+		if (choice?.finishReason === "length") {
+			throw new Error(
+				"Ответ модели обрезан по лимиту токенов. Попробуй ещё раз или другую модель.",
+			);
 		}
 	}
 }
 
-/** Runs `onFirst` once, before yielding the first chunk (e.g. clear a loading status). */
-export async function* withOnFirstChunk<T>(
-	stream: AsyncIterable<T>,
-	onFirst: () => void | Promise<void>,
-): AsyncGenerator<T> {
-	let first = true;
-	for await (const chunk of stream) {
-		if (first) {
-			first = false;
-			await onFirst();
-		}
-		yield chunk;
-	}
+/**
+ * Shows Telegram's native Thinking… draft immediately (empty sendMessageDraft),
+ * clears the loading status without blocking the model stream, then forwards chunks.
+ */
+export async function* bridgeStatusToStream(
+	stream: AsyncIterable<string>,
+	clearStatus: () => void | Promise<void>,
+): AsyncGenerator<string> {
+	yield "";
+	void Promise.resolve(clearStatus()).catch(() => {});
+	yield* stream;
 }

@@ -1,27 +1,28 @@
 import { describe, expect, test } from "bun:test";
 import type { ChatStreamChunk } from "@openrouter/sdk/models";
-import { mapChatChunksToText, withOnFirstChunk } from "./chat-stream";
+import { bridgeStatusToStream, mapChatChunksToText } from "./chat-stream";
 
 function chunk(
 	partial: Partial<ChatStreamChunk> & {
 		delta?: string | null;
+		finishReason?: ChatStreamChunk["choices"][number]["finishReason"];
 		error?: ChatStreamChunk["error"];
 	},
 ): ChatStreamChunk {
-	const { delta, error, ...rest } = partial;
+	const { delta, error, finishReason = null, ...rest } = partial;
 	return {
 		id: "test",
 		object: "chat.completion.chunk",
 		created: 0,
 		model: "test",
 		choices:
-			delta === undefined
+			delta === undefined && finishReason == null
 				? []
 				: [
 						{
 							index: 0,
-							delta: { content: delta, role: "assistant" },
-							finishReason: null,
+							delta: { content: delta ?? null, role: "assistant" },
+							finishReason,
 						},
 					],
 		error,
@@ -87,57 +88,83 @@ describe("mapChatChunksToText", () => {
 			collect(mapChatChunksToText(source(), controller.signal)),
 		).rejects.toThrow(/abort/i);
 	});
+
+	test("throws when finish_reason is length (truncated output)", async () => {
+		async function* source() {
+			yield chunk({ delta: "partial chords" });
+			yield chunk({ delta: null, finishReason: "length" });
+		}
+
+		await expect(collect(mapChatChunksToText(source()))).rejects.toThrow(
+			/обрезан|token|length/i,
+		);
+	});
 });
 
-describe("withOnFirstChunk", () => {
-	test("awaits onFirst before yielding the first chunk", async () => {
-		const order: string[] = [];
+describe("bridgeStatusToStream", () => {
+	test("yields Thinking placeholder before reading the source", async () => {
+		let sourceStarted = false;
 
 		async function* source() {
-			order.push("chunk-ready");
+			sourceStarted = true;
 			yield "Am";
-			order.push("after-first");
+		}
+
+		const gen = bridgeStatusToStream(source(), async () => {});
+		const first = await gen.next();
+
+		expect(first).toEqual({ done: false, value: "" });
+		expect(sourceStarted).toBe(false);
+
+		const second = await gen.next();
+		expect(sourceStarted).toBe(true);
+		expect(second).toEqual({ done: false, value: "Am" });
+	});
+
+	test("does not await clearStatus before forwarding source chunks", async () => {
+		let resolveClear!: () => void;
+		const clearGate = new Promise<void>((r) => {
+			resolveClear = r;
+		});
+		let clearFinished = false;
+
+		async function* source() {
+			yield "Am";
 			yield " G";
 		}
 
-		const parts = await collect(
-			withOnFirstChunk(source(), async () => {
-				order.push("on-first");
-			}),
-		);
+		const gen = bridgeStatusToStream(source(), async () => {
+			await clearGate;
+			clearFinished = true;
+		});
 
-		expect(parts).toEqual(["Am", " G"]);
-		expect(order).toEqual(["chunk-ready", "on-first", "after-first"]);
+		expect((await gen.next()).value).toBe("");
+		expect((await gen.next()).value).toBe("Am");
+		expect(clearFinished).toBe(false);
+		expect((await gen.next()).value).toBe(" G");
+		expect((await gen.next()).done).toBe(true);
+		expect(clearFinished).toBe(false);
+
+		resolveClear();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(clearFinished).toBe(true);
 	});
 
-	test("does not call onFirst when the stream is empty", async () => {
-		let called = false;
+	test("still clears status when the source is empty", async () => {
+		let cleared = false;
 
-		async function* empty() {
-			// no chunks
-		}
+		async function* empty() {}
 
-		expect(await collect(withOnFirstChunk(empty(), async () => {
-			called = true;
-		}))).toEqual([]);
-		expect(called).toBe(false);
-	});
-
-	test("calls onFirst only once", async () => {
-		let calls = 0;
-
-		async function* source() {
-			yield "a";
-			yield "b";
-			yield "c";
-		}
-
-		await collect(
-			withOnFirstChunk(source(), async () => {
-				calls++;
-			}),
-		);
-
-		expect(calls).toBe(1);
+		expect(
+			await collect(
+				bridgeStatusToStream(empty(), async () => {
+					cleared = true;
+				}),
+			),
+		).toEqual([""]);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(cleared).toBe(true);
 	});
 });

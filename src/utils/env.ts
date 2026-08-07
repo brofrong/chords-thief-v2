@@ -7,6 +7,7 @@ const envSchema = z.object({
 	PATH_TO_SAVE: z.string().default("./chords"),
 	ADMIN_ID: z.coerce.number().optional(),
 	DEFAULT_AI_MODEL: z.string().default("openai/gpt-5.3-codex"),
+	MAX_COMPLETION_TOKENS: z.coerce.number().default(8192),
 	HEALTH_PORT: z.coerce.number().default(8080),
 	HTML_MAX_KB: z.coerce.number().default(100),
 	FETCH_TIMEOUT_MS: z.coerce.number().default(15_000),

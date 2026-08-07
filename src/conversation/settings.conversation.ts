@@ -7,7 +7,12 @@ import { MODEL_CALLBACK_RE, buildModelKeyboard } from "./model-keyboard";
 
 /** Ответ `0` сбрасывает настройку (в БД пишется null). */
 function textOrNull(raw: string): string | null {
-	return raw.trim() === "0" ? null : raw;
+	const trimmed = raw.trim();
+	return trimmed === "0" ? null : trimmed;
+}
+
+function looksLikeBotCommand(value: string): boolean {
+	return value.startsWith("/");
 }
 
 type SettingsTextField = "openRouterApiKey" | "aiModel" | "masterPrompt";
@@ -72,13 +77,36 @@ async function enterManualAiModel(
 }
 
 async function setOpenRouterApiKey(conversation: Conversation, ctx: Context) {
-	return updateUserTextSetting(conversation, ctx, {
-		prompt: "Пришли ключ OpenRouter API",
-		field: "openRouterApiKey",
-		emptyReply: "Ключ сброшен",
-		savedReply: (v) =>
-			`Ключ сохранен: ${v.length <= 8 ? "••••" : `${v.slice(0, 4)}…${v.slice(-4)}`}`,
-	});
+	await ctx.reply("Пришли ключ OpenRouter API (или 0 чтобы сбросить)");
+
+	while (true) {
+		const { message } = await conversation.waitFor("message:text");
+		const value = textOrNull(message.text);
+		const user = await db.query.user.findFirst({
+			where: {
+				telegramId: ctx.from?.id,
+			},
+		});
+		if (!user) {
+			await ctx.reply("Ошибка: Пользователь не найден");
+			return;
+		}
+
+		if (value !== null && looksLikeBotCommand(value)) {
+			await ctx.reply(
+				"Это похоже на команду бота, а не на API-ключ. Пришли ключ с openrouter.ai (или 0 чтобы сбросить)",
+			);
+			continue;
+		}
+
+		await saveUserSetting(user.id, "openRouterApiKey", value);
+		await ctx.reply(
+			value === null
+				? "Ключ сброшен"
+				: `Ключ сохранен: ${value.length <= 8 ? "••••" : `${value.slice(0, 4)}…${value.slice(-4)}`}`,
+		);
+		return;
+	}
 }
 
 async function setAiModel(conversation: Conversation, ctx: Context) {

@@ -53,6 +53,7 @@ export async function getChords(
 						},
 					],
 					model: userSettings.settings.aiModel || env.DEFAULT_AI_MODEL,
+					maxCompletionTokens: env.MAX_COMPLETION_TOKENS,
 					stream: true,
 				},
 			},
@@ -70,6 +71,11 @@ export async function getChords(
 		}
 		const message =
 			error instanceof Error ? error.message : "Ошибка OpenRouter";
+		if (/missing authentication|unauthorized|invalid.*api.?key/i.test(message)) {
+			return err(
+				"OpenRouter не принял API-ключ. Проверь /set_api_token (нужен ключ с openrouter.ai, не команда бота)",
+			);
+		}
 		return err(message);
 	}
 }
