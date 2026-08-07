@@ -1,5 +1,5 @@
 import { OpenRouter } from "@openrouter/sdk";
-import type { ChatStreamingResponseChunk } from "@openrouter/sdk/models";
+import type { ChatStreamChunk } from "@openrouter/sdk/models";
 import { db } from "../db";
 import { env } from "../utils/env";
 import { defaultMasterPrompt } from "./master-promt";
@@ -45,7 +45,7 @@ export async function getChords(
 }
 
 function wrapStreamingChatResponse(
-	stream: AsyncIterable<ChatStreamingResponseChunk>,
+	stream: AsyncIterable<ChatStreamChunk>,
 ): ChordsStreamResponse {
 	let fullText = "";
 
@@ -75,17 +75,13 @@ export async function getStream(
 		apiKey: openRouterApiKey,
 	});
 
-	// const input = masterPrompt
-	// 	? `${masterPrompt}\n\n${text}`
-	// 	: `${defaultMasterPrompt}\n\n${text}`;
-
 	const response = await openRouter.chat.send({
-		chatGenerationParams: {
+		chatRequest: {
 			messages: [
-        {
-          role: "system",
-          content: masterPrompt || defaultMasterPrompt,
-        },
+				{
+					role: "system",
+					content: masterPrompt || defaultMasterPrompt,
+				},
 				{
 					role: "user",
 					content: text,
@@ -96,5 +92,8 @@ export async function getStream(
 		},
 	});
 
-	return wrapStreamingChatResponse(response);
+	// SDK overload returns a union; stream: true always yields EventStream chunks.
+	return wrapStreamingChatResponse(
+		response as AsyncIterable<ChatStreamChunk>,
+	);
 }
