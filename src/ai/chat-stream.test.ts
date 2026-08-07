@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ChatStreamChunk } from "@openrouter/sdk/models";
-import { mapChatChunksToText } from "./chat-stream";
+import { mapChatChunksToText, withOnFirstChunk } from "./chat-stream";
 
 function chunk(
 	partial: Partial<ChatStreamChunk> & {
@@ -86,5 +86,58 @@ describe("mapChatChunksToText", () => {
 		await expect(
 			collect(mapChatChunksToText(source(), controller.signal)),
 		).rejects.toThrow(/abort/i);
+	});
+});
+
+describe("withOnFirstChunk", () => {
+	test("awaits onFirst before yielding the first chunk", async () => {
+		const order: string[] = [];
+
+		async function* source() {
+			order.push("chunk-ready");
+			yield "Am";
+			order.push("after-first");
+			yield " G";
+		}
+
+		const parts = await collect(
+			withOnFirstChunk(source(), async () => {
+				order.push("on-first");
+			}),
+		);
+
+		expect(parts).toEqual(["Am", " G"]);
+		expect(order).toEqual(["chunk-ready", "on-first", "after-first"]);
+	});
+
+	test("does not call onFirst when the stream is empty", async () => {
+		let called = false;
+
+		async function* empty() {
+			// no chunks
+		}
+
+		expect(await collect(withOnFirstChunk(empty(), async () => {
+			called = true;
+		}))).toEqual([]);
+		expect(called).toBe(false);
+	});
+
+	test("calls onFirst only once", async () => {
+		let calls = 0;
+
+		async function* source() {
+			yield "a";
+			yield "b";
+			yield "c";
+		}
+
+		await collect(
+			withOnFirstChunk(source(), async () => {
+				calls++;
+			}),
+		);
+
+		expect(calls).toBe(1);
 	});
 });

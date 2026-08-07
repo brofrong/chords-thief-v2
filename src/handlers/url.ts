@@ -1,6 +1,7 @@
 import { InlineKeyboard } from "grammy";
 import z from "zod";
 import { getChords } from "../ai/ai";
+import { withOnFirstChunk } from "../ai/chat-stream";
 import { db } from "../db";
 import { MessagesTable } from "../db/schema";
 import { guard } from "../middleware/guard";
@@ -77,11 +78,24 @@ export async function urlHandler(ctx: BotContext) {
 		return;
 	}
 
+	let statusCleared = false;
+	const clearStatus = async () => {
+		if (statusCleared) return;
+		statusCleared = true;
+		try {
+			await ctx.api.deleteMessage(status.chat.id, status.message_id);
+		} catch {
+			// Message may already be gone
+		}
+	};
+
 	try {
-		await ctx.api.deleteMessage(status.chat.id, status.message_id);
+		// Keep "Генерирую текст..." until the first stream chunk arrives.
+		const stream = withOnFirstChunk(chordsResult.value, clearStatus);
 
 		// Abort cancels OpenRouter + our chunk mapper; replyWithStream stops when the iterable throws.
-		const messages = await ctx.replyWithStream(chordsResult.value);
+		const messages = await ctx.replyWithStream(stream);
+		await clearStatus();
 
 		const AIMessage = messages.map((m) => m.text ?? "").join("");
 		if (!AIMessage.trim()) {
@@ -111,6 +125,18 @@ export async function urlHandler(ctx: BotContext) {
 		console.error(error);
 		const message =
 			error instanceof Error ? error.message : "Неизвестная ошибка генерации";
+		if (!statusCleared) {
+			try {
+				await ctx.api.editMessageText(
+					status.chat.id,
+					status.message_id,
+					`Ошибка: ${message.slice(0, 200)}`,
+				);
+				return;
+			} catch {
+				// Fall through to a new reply
+			}
+		}
 		await ctx.reply(`Ошибка: ${message.slice(0, 200)}`);
 	}
 }

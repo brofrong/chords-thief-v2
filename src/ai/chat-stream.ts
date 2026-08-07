@@ -18,3 +18,18 @@ export async function* mapChatChunksToText(
 		}
 	}
 }
+
+/** Runs `onFirst` once, before yielding the first chunk (e.g. clear a loading status). */
+export async function* withOnFirstChunk<T>(
+	stream: AsyncIterable<T>,
+	onFirst: () => void | Promise<void>,
+): AsyncGenerator<T> {
+	let first = true;
+	for await (const chunk of stream) {
+		if (first) {
+			first = false;
+			await onFirst();
+		}
+		yield chunk;
+	}
+}
