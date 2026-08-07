@@ -1,9 +1,9 @@
-version: '3.8'
+version: "3.8"
 
 services:
   chords-thief:
     container_name: chords-thief
-    user: 1000:1000
+    user: "1000:1000"
     build:
       context: ..
       dockerfile: dockerfile
@@ -13,9 +13,26 @@ services:
     environment:
       - NODE_ENV=production
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - AI_MODEL=${AI_MODEL}
       - ADMIN_ID=${ADMIN_ID}
-
+      - DB_FILE_NAME=${DB_FILE_NAME:-./db/db.sqlite}
+      - PATH_TO_SAVE=${PATH_TO_SAVE:-./chords}
+      - DEFAULT_AI_MODEL=${DEFAULT_AI_MODEL:-openai/gpt-5.3-codex}
+      - HEALTH_PORT=8080
+      - HTML_MAX_KB=${HTML_MAX_KB:-100}
+      - FETCH_TIMEOUT_MS=${FETCH_TIMEOUT_MS:-15000}
+      - FETCH_MAX_BYTES=${FETCH_MAX_BYTES:-2097152}
+    ports:
+      - "${HEALTH_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:8080').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
-

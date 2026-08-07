@@ -1,22 +1,24 @@
 import { OpenRouter } from "@openrouter/sdk";
 import type { ChatStreamChunk } from "@openrouter/sdk/models";
 import { db } from "../db";
+import { err, ok, type Result } from "../types/result";
 import { env } from "../utils/env";
 import { defaultMasterPrompt } from "./master-promt";
 
-/** Matches usage in `index.ts`: stream to Telegram, then read full text once buffered. */
+/** Matches usage in handlers: stream to Telegram, then read full text once buffered. */
 export type ChordsStreamResponse = {
 	getTextStream(): AsyncIterable<string>;
 	getText(): Promise<string>;
 };
 
 export async function getChords(
-	telegramUserId: number,
+	telegramUserId: number | undefined,
 	text: string,
-): Promise<
-	| { success: false; error: string }
-	| { success: true; aiResponse: Promise<ChordsStreamResponse> }
-> {
+): Promise<Result<ChordsStreamResponse>> {
+	if (!telegramUserId) {
+		return err("Пользователь не найден");
+	}
+
 	const userSettings = await db.query.user.findFirst({
 		with: {
 			settings: true,
@@ -27,21 +29,25 @@ export async function getChords(
 	});
 
 	if (!userSettings?.settings) {
-		return { error: "User settings not found", success: false };
+		return err("Настройки пользователя не найдены. Сначала /start и /set_api_token");
 	}
-	if (!userSettings.settings?.openRouterApiKey) {
-		return { error: "OpenRouter API key not found", success: false };
+	if (!userSettings.settings.openRouterApiKey) {
+		return err("OpenRouter API key не задан. Команда: /set_api_token");
 	}
 
-	return {
-		success: true,
-		aiResponse: getStream(
+	try {
+		const aiResponse = await getStream(
 			text,
 			userSettings.settings.masterPrompt,
 			userSettings.settings.openRouterApiKey,
 			userSettings.settings.aiModel,
-		),
-	};
+		);
+		return ok(aiResponse);
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Ошибка OpenRouter";
+		return err(message);
+	}
 }
 
 function wrapStreamingChatResponse(
@@ -92,7 +98,6 @@ export async function getStream(
 		},
 	});
 
-	// SDK overload returns a union; stream: true always yields EventStream chunks.
 	return wrapStreamingChatResponse(
 		response as AsyncIterable<ChatStreamChunk>,
 	);

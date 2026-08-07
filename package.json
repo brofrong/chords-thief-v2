@@ -5,6 +5,7 @@
 	"private": true,
 	"scripts": {
 		"start": "bun run src/index.ts",
+		"test": "bun test",
 		"lint": "bunx --bun @biomejs/biome format --write",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
@@ -22,7 +23,6 @@
 		"cheerio": "^1.2.0",
 		"drizzle-orm": "^1.0.0-rc.4-fb12281",
 		"grammy": "^1.45.1",
-		"prettier": "^3.9.6",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {

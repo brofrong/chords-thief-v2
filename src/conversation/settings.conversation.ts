@@ -76,7 +76,8 @@ async function setOpenRouterApiKey(conversation: Conversation, ctx: Context) {
 		prompt: "Пришли ключ OpenRouter API",
 		field: "openRouterApiKey",
 		emptyReply: "Ключ сброшен",
-		savedReply: (v) => `Ключ сохранен: ${v}`,
+		savedReply: (v) =>
+			`Ключ сохранен: ${v.length <= 8 ? "••••" : `${v.slice(0, 4)}…${v.slice(-4)}`}`,
 	});
 }
 
