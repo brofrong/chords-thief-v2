@@ -4,6 +4,7 @@ import { db } from "../db";
 import { err, ok, type Result } from "../types/result";
 import { env } from "../utils/env";
 import { mapChatChunksToText } from "./chat-stream";
+import { buildChordMessages } from "./chord-messages";
 import { defaultMasterPrompt } from "./master-promt";
 
 export async function getChords(
@@ -38,20 +39,14 @@ export async function getChords(
 			apiKey: userSettings.settings.openRouterApiKey,
 		});
 
+		const masterPrompt =
+			userSettings.settings.masterPrompt?.trim() || defaultMasterPrompt;
+		const messages = buildChordMessages(masterPrompt, text);
+
 		const response = await openRouter.chat.send(
 			{
 				chatRequest: {
-					messages: [
-						{
-							role: "system",
-							content:
-								userSettings.settings.masterPrompt || defaultMasterPrompt,
-						},
-						{
-							role: "user",
-							content: text,
-						},
-					],
+					messages,
 					model: userSettings.settings.aiModel || env.DEFAULT_AI_MODEL,
 					maxCompletionTokens: env.MAX_COMPLETION_TOKENS,
 					stream: true,
