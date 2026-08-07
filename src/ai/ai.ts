@@ -3,18 +3,14 @@ import type { ChatStreamChunk } from "@openrouter/sdk/models";
 import { db } from "../db";
 import { err, ok, type Result } from "../types/result";
 import { env } from "../utils/env";
+import { mapChatChunksToText } from "./chat-stream";
 import { defaultMasterPrompt } from "./master-promt";
-
-/** Matches usage in handlers: stream to Telegram, then read full text once buffered. */
-export type ChordsStreamResponse = {
-	getTextStream(): AsyncIterable<string>;
-	getText(): Promise<string>;
-};
 
 export async function getChords(
 	telegramUserId: number | undefined,
 	text: string,
-): Promise<Result<ChordsStreamResponse>> {
+	signal?: AbortSignal,
+): Promise<Result<AsyncIterable<string>>> {
 	if (!telegramUserId) {
 		return err("Пользователь не найден");
 	}
@@ -29,76 +25,58 @@ export async function getChords(
 	});
 
 	if (!userSettings?.settings) {
-		return err("Настройки пользователя не найдены. Сначала /start и /set_api_token");
+		return err(
+			"Настройки пользователя не найдены. Сначала /start и /set_api_token",
+		);
 	}
 	if (!userSettings.settings.openRouterApiKey) {
 		return err("OpenRouter API key не задан. Команда: /set_api_token");
 	}
 
 	try {
-		const aiResponse = await getStream(
-			text,
-			userSettings.settings.masterPrompt,
-			userSettings.settings.openRouterApiKey,
-			userSettings.settings.aiModel,
+		const openRouter = new OpenRouter({
+			apiKey: userSettings.settings.openRouterApiKey,
+		});
+
+		const response = await openRouter.chat.send(
+			{
+				chatRequest: {
+					messages: [
+						{
+							role: "system",
+							content:
+								userSettings.settings.masterPrompt || defaultMasterPrompt,
+						},
+						{
+							role: "user",
+							content: text,
+						},
+					],
+					model: userSettings.settings.aiModel || env.DEFAULT_AI_MODEL,
+					stream: true,
+				},
+			},
+			{ signal },
 		);
-		return ok(aiResponse);
+
+		if (!isAsyncIterable<ChatStreamChunk>(response)) {
+			return err("OpenRouter вернул не-stream ответ");
+		}
+
+		return ok(mapChatChunksToText(response, signal));
 	} catch (error) {
+		if (signal?.aborted) {
+			return err("Генерация отменена");
+		}
 		const message =
 			error instanceof Error ? error.message : "Ошибка OpenRouter";
 		return err(message);
 	}
 }
 
-function wrapStreamingChatResponse(
-	stream: AsyncIterable<ChatStreamChunk>,
-): ChordsStreamResponse {
-	let fullText = "";
-
-	return {
-		async *getTextStream() {
-			for await (const chunk of stream) {
-				const delta = chunk.choices[0]?.delta?.content;
-				if (delta) {
-					fullText += delta;
-					yield delta;
-				}
-			}
-		},
-		async getText() {
-			return fullText;
-		},
-	};
-}
-
-export async function getStream(
-	text: string,
-	masterPrompt: string | null,
-	openRouterApiKey: string,
-	aiModel: string | null,
-): Promise<ChordsStreamResponse> {
-	const openRouter = new OpenRouter({
-		apiKey: openRouterApiKey,
-	});
-
-	const response = await openRouter.chat.send({
-		chatRequest: {
-			messages: [
-				{
-					role: "system",
-					content: masterPrompt || defaultMasterPrompt,
-				},
-				{
-					role: "user",
-					content: text,
-				},
-			],
-			model: aiModel || env.DEFAULT_AI_MODEL,
-			stream: true,
-		},
-	});
-
-	return wrapStreamingChatResponse(
-		response as AsyncIterable<ChatStreamChunk>,
+function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
+	return (
+		value != null &&
+		typeof (value as AsyncIterable<T>)[Symbol.asyncIterator] === "function"
 	);
 }

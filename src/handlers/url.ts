@@ -12,6 +12,11 @@ import { env } from "../utils/env";
 const saveKeyboard = new InlineKeyboard().text("Сохранить", "save");
 
 export async function urlHandler(ctx: BotContext) {
+	if (ctx.chat?.type !== "private") {
+		await ctx.reply("Стриминг аккордов работает только в личке с ботом");
+		return;
+	}
+
 	if (!(await guard.canParse(ctx))) {
 		await ctx.reply("У тебя нет прав на парсинг");
 		return;
@@ -34,11 +39,7 @@ export async function urlHandler(ctx: BotContext) {
 		return;
 	}
 
-	const chatId = ctx.chat?.id;
-	if (!chatId) {
-		await ctx.reply("Error: Chat not found");
-		return;
-	}
+	const chatId = ctx.chat.id;
 
 	const user = await db.query.user.findFirst({
 		where: { telegramId },
@@ -65,18 +66,30 @@ export async function urlHandler(ctx: BotContext) {
 		"Генерирую текст...",
 	);
 
-	const chordsResult = await getChords(telegramId, page.value);
+	const abort = new AbortController();
+	const chordsResult = await getChords(telegramId, page.value, abort.signal);
 	if (!isOk(chordsResult)) {
-		await ctx.reply(`Ошибка: ${chordsResult.error}`);
+		await ctx.api.editMessageText(
+			status.chat.id,
+			status.message_id,
+			`Ошибка: ${chordsResult.error}`,
+		);
 		return;
 	}
 
 	try {
-		const aiResponse = chordsResult.value;
-		const lastReply = await ctx.replyWithStream(aiResponse.getTextStream());
 		await ctx.api.deleteMessage(status.chat.id, status.message_id);
 
-		const lastMessageId = lastReply.at(-1)?.message_id;
+		// Abort cancels OpenRouter + our chunk mapper; replyWithStream stops when the iterable throws.
+		const messages = await ctx.replyWithStream(chordsResult.value);
+
+		const AIMessage = messages.map((m) => m.text ?? "").join("");
+		if (!AIMessage.trim()) {
+			await ctx.reply("Модель вернула пустой ответ");
+			return;
+		}
+
+		const lastMessageId = messages.at(-1)?.message_id;
 		if (!lastMessageId) {
 			await ctx.reply("Error: Message not found");
 			return;
@@ -86,7 +99,7 @@ export async function urlHandler(ctx: BotContext) {
 			authorId: user.id,
 			chatId,
 			messageId: lastMessageId,
-			AIMessage: await aiResponse.getText(),
+			AIMessage,
 			originalLink: urlParsed.data.toString(),
 		});
 
@@ -94,6 +107,7 @@ export async function urlHandler(ctx: BotContext) {
 			reply_markup: saveKeyboard,
 		});
 	} catch (error) {
+		abort.abort();
 		console.error(error);
 		const message =
 			error instanceof Error ? error.message : "Неизвестная ошибка генерации";
