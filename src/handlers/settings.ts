@@ -1,4 +1,5 @@
 import { CommandGroup } from "@grammyjs/commands";
+import { version } from "../../package.json";
 import { db } from "../db";
 import type { BotContext } from "../types/context";
 
@@ -41,6 +42,7 @@ export function createSettingsCommandGroup() {
 		}
 		await ctx.reply(
 			[
+				`версия: ${version}`,
 				`OpenRouter API Token: ${maskSecret(userSettings.settings?.openRouterApiKey)}`,
 				`AI Model: ${userSettings.settings?.aiModel ?? "Not set"}`,
 				`Master Prompt: ${userSettings.settings?.masterPrompt ?? "Not set"}`,
