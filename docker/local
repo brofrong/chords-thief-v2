@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  chords-thief:
+    image: brofrong/chords-thief:latest
+    container_name: chords-thief
+    volumes:
+      - /data/chords/db:/app/db
+      - /data/syncthing/data/obsidian/broland/Гитара:/app/chords
+    environment:
+      - NODE_ENV=production
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+
+    restart: unless-stopped
+

@@ -4,6 +4,8 @@ Telegram-бот: присылаешь ссылку на страницу с ак
 
 ## Setup
 
+Нужен [Bun](https://bun.com) 1.4+.
+
 ```bash
 bun install
 cp .env.example .env
