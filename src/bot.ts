@@ -6,6 +6,7 @@ import {
 import { stream } from "@grammyjs/stream";
 import { Bot } from "grammy";
 import process from "node:process";
+import { version } from "../package.json";
 import { settingsConversation } from "./conversation/settings.conversation";
 import { initAdmin } from "./db/init-admin";
 import { saveCallbackHandler } from "./handlers/save";
@@ -65,7 +66,7 @@ export async function startBot() {
 	const bot = await createBot();
 
 	bot.start();
-	console.log(`Bot is running... (health :${health.port})`);
+	console.log(`Bot is running v${version}... (health :${health.port})`);
 
 	const stop = () => {
 		bot.stop();
